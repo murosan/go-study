@@ -11,4 +11,8 @@ go run ./cmd1/main.go
 #2
 go build -o ./count ./output/main.go
 go run ./cmd2/main.go
+
+#3
+go build -o ./readout ./inout/main.go
+go run ./cmd3/main.go
 ```
