@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>WebSocket Test</title>
+</head>
+
+<body>
+
+<style>
+	body {
+		font-family: sans-serif;
+	}
+
+	#sendMsg {
+		outline: 0;
+		background: #f2f2f2;
+		width: 400px;
+		height: 45px;
+		border: 1px solid #969696;
+		margin: 0 0 15px;
+		padding: 15px;
+		box-sizing: border-box;
+		font-size: 14px;
+	}
+
+	#sendBtn {
+		outline: 0;
+		background: #494949;
+		color: rgb(202, 202, 202);
+		height: 40px;
+		width: 60px;
+		border: none;
+		font-size: 12px;
+	}
+</style>
+
+<h2>WebSocket Test</h2>
+<div>
+	<input type="text" id="sendMsg" placeholder="input">
+</div>
+<div>
+	<button id="sendBtn">送信</button>
+</div>
+<div id="output"></div>
+<script type="text/javascript" src="socket.js"></script>
+
+</body>
+
+</html>
