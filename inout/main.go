@@ -17,6 +17,6 @@ func main() {
 			return
 		}
 
-		fmt.Println("received: " + line)
+		fmt.Println("from command: " + line)
 	}
 }

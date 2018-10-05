@@ -4,66 +4,91 @@ import (
 	"bufio"
 	"fmt"
 	"gopkg.in/pipe.v2"
+	"io"
 	"os"
 	"os/exec"
+	"sync"
 )
 
-// https://qiita.com/udzura/items/bc65456ecdaacb69d47f
+type CommandWrapper struct {
+	cmd *exec.Cmd
 
-func inputSupervisor(sc *bufio.Scanner) {
-	for sc.Scan() {
-		if line := sc.Text(); line != "fin" {
-			fmt.Println("input: '" + line + "'")
+	// コマンドの pipe
+	stdin  io.WriteCloser
+	stdout io.ReadCloser
+
+	//　実行したコマンドが出力した値を読み取る Scanner
+	sc *bufio.Scanner
+
+	// コマンドが終了したかどうか
+	// done が true なら終了したことを表す
+	mux    sync.Mutex
+	doneCh chan bool
+}
+
+// コマンドが出力した文字列を読み取って出力する
+func cmdOutputPrinter(s *CommandWrapper) {
+	for s.sc.Scan() {
+		if line := s.sc.Text(); line != "fin" {
+			fmt.Println("[output] " + line)
 		}
 	}
 
-	if err := sc.Err(); err != nil {
+	if err := s.sc.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 	}
 }
 
-func terminator(cmd *exec.Cmd, term chan bool) {
-	cmd.Wait()
+// コマンドが終了したら done を true にする
+func terminator(s *CommandWrapper) {
+	s.mux.Lock()
+	s.cmd.Wait()
 	fmt.Println("Received exit code")
-	term <- true
+	s.doneCh <- true
+	s.mux.Unlock()
 }
 
-func main() {
+func newCommand() *CommandWrapper {
 	cmd := exec.Command("./readout")
 	stdin, _ := cmd.StdinPipe()
 	stdout, _ := cmd.StdoutPipe()
 
-	if err := cmd.Start(); err != nil {
+	return &CommandWrapper{
+		cmd:    cmd,
+		stdin:  stdin,
+		stdout: stdout,
+
+		sc:     bufio.NewScanner(stdout),
+		doneCh: make(chan bool),
+	}
+}
+
+func main() {
+	cw := newCommand()
+	if err := cw.cmd.Start(); err != nil {
 		panic(err)
 	}
 
-	scanner := bufio.NewScanner(stdout)
-	go inputSupervisor(scanner)
-
-	term := make(chan bool, 1)
-	go terminator(cmd, term)
+	go cmdOutputPrinter(cw)
+	go terminator(cw)
 
 	go func() {
-		<-term
-		fmt.Println("Exited.")
+		<-cw.doneCh
+		fmt.Println("Exit.")
 		os.Exit(0)
 	}()
 
 	p := pipe.Line(
 		pipe.Read(os.Stdin),
-		pipe.Write(stdin),
+		pipe.Write(cw.stdin),
 	)
 
 	if err := pipe.Run(p); err != nil {
 		panic(err)
 	}
 
-	fmt.Println(5)
-
 	if s, err := pipe.Output(p); err != nil {
 		fmt.Println("error: '" + string(s) + "'")
 		panic(err)
 	}
-
-	fmt.Println(6)
 }
